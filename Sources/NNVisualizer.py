@@ -1,5 +1,5 @@
 import tkinter as tk
-import random
+from Sources.StateDictionaries import StateDictionaries
 
 
 class NNVisualizer(tk.Frame):
@@ -8,30 +8,58 @@ class NNVisualizer(tk.Frame):
         super().__init__(master)
         self.master = master
         self.state_dict = state_dict
+        self.canvas = tk.Canvas(master=self.master, width=500, height=400, highlightthickness=0)
+        self.canvas.bind("<Configure>", self.rebuild)
         self.pack()
         self.create_widgets()
+
+    def rebuild(self, event):
+        print(event)
+        pass
+        originalHeight = self.height()
+        originalWidth = self.width()
+        self.config(width=event.width, height=event.height)
+        self.canvas.config(width=event.width, height=event.height)
+        # self.update()
+        # self.canvas.update()
+        if (originalHeight != self.canvas.winfo_reqheight() or originalWidth != self.canvas.winfo_reqwidth()):
+            self.canvas.delete("all")
+            self.drawNN()
 
     @staticmethod
     def xStart() -> int:
         """Returns the starting x position to use."""
-        return 150
+        return 50
 
-    @staticmethod
-    def incrementAmount() -> int:
-        return 100
+    def incrementAmount(self, horizontalCount: int = None) -> int:
+        if horizontalCount is None:
+            return 100
+        else:
+            width = self.width() / (horizontalCount + 1)
+            return width
 
-    @staticmethod
-    def radius() -> int:
-        """Returns the radius to use for the circles."""
-        return 20
+    def radius(self, count: int = None) -> int:
+        """Returns the radius to use for the circles.
 
-    @staticmethod
-    def height() -> int:
-        return 400
+        Args:
+            count (int): The number of elements being placed vertically.
+                More circles will mean a smaller radius.
+        Returns:
+            int: The radius to use for all circles.
+        """
+        if count is None:
+            return 20
+        else:
+            return max(10, int(self.height() / (5 * count)))
 
-    @staticmethod
-    def width() -> int:
-        return 500
+    def height(self) -> int:
+        height = self.canvas.winfo_reqheight()
+        print(f"Height: {height}")
+        return height if height != 1 else 400
+
+    def width(self) -> int:
+        width = self.canvas.winfo_reqwidth()
+        return width if width != 1 else 500
 
     @staticmethod
     def yPositions(height: int, count: int) -> list:
@@ -48,29 +76,27 @@ class NNVisualizer(tk.Frame):
         return [separators * i for i in range(1, count + 1)]
 
     def create_widgets(self):
-        self.canvas = tk.Canvas(master=self.master, width=self.width(), height=self.height())
+        # self.hi_there = tk.Button(self)
+        # self.hi_there["text"] = "Hello World\n(click me)"
+        # self.hi_there["command"] = self.say_hi
+        # self.hi_there.pack(side="top")
 
-        self.hi_there = tk.Button(self)
-        self.hi_there["text"] = "Hello World\n(click me)"
-        self.hi_there["command"] = self.say_hi
-        self.hi_there.pack(side="top")
-
-        # self.drawLines(xPos=self.xStart() + 100, yPos=200, lineWeights=[0.0, 0.25, 0.5, 0.75, 1.0])
-        # self.drawLayer(50, [1.0, 0.8, 0.6, 0.2, 0.0])
         self.drawNN()
-        self.canvas.pack(fill=tk.BOTH, expand=1)
+        self.canvas.pack(fill=tk.BOTH, expand=True)
 
         self.quit = tk.Button(self, text="QUIT", fg="red",
                               command=self.master.destroy)
         self.quit.pack(side="bottom")
 
     def drawNN(self):
+        self.canvas.update()
         x = self.xStart()
 
         # Draw the input layer
-        inputCount = len(list(self.state_dict.values())[0])
-        print(list(self.state_dict.values())[0])
-        self.drawInputCircles(self.height(), inputCount, radius=self.radius())
+        inputCount = len(list(self.state_dict.values())[0][0])
+        print(list(self.state_dict.values())[0][0])
+        self.drawInputCircles(x, self.height(), inputCount, radius=self.radius(inputCount))
+        x += self.incrementAmount(horizontalCount=(len(self.state_dict) // 2))
 
         # Draw the hidden and output layers
         for index, listItem in enumerate(self.state_dict.values()):
@@ -82,8 +108,8 @@ class NNVisualizer(tk.Frame):
                     self.drawLines(x, yPos, weights)
             else:
                 # Biases: draw circles
-                self.drawLayer(x, listItem, self.radius())
-                x += 100
+                self.drawLayer(x, listItem, self.radius(len(listItem)))
+                x += self.incrementAmount(horizontalCount=(len(self.state_dict) // 2))
 
     def say_hi(self):
         print("hi there, everyone!")
@@ -95,12 +121,10 @@ class NNVisualizer(tk.Frame):
         for bias, yPos in zip(biases, self.yPositions(self.height(), len(biases))):
             self.drawCircle(xPos, yPos, radius, self.numToColor(bias))
 
-    def drawInputCircles(self, height: int, count: int, radius: int = 20):
+    def drawInputCircles(self, xPos: int, height: int, count: int, radius: int = 20):
         yPositions = self.yPositions(height, count)
-        xPos = self.xStart() - self.incrementAmount()
         for yPos in yPositions:
-            self.drawCircle(xPos, yPos, radius, color="grey")
-
+            self.drawCircle(xPos, yPos, radius, color="#AAAAAA")
 
     @staticmethod
     def rgbToHex(r: int, g: int, b: int) -> str:
@@ -125,9 +149,9 @@ class NNVisualizer(tk.Frame):
         Returns:
             str: The hex value of the number converted to a string (#RRGGBB).
         """
-        red = self.clamp(int(255 * (1 - num)))  # Low value should be red
+        red = self.clamp(int(255 * (1 - ((num + 1) / 2))))  # Low value should be red
         green = 0
-        blue = self.clamp(int(255 * num))  # High num should be blue
+        blue = self.clamp(int(255 * ((num + 1) / 2)))  # High num should be blue
         return self.rgbToHex(red, green, blue)
 
     @staticmethod
@@ -146,39 +170,17 @@ class NNVisualizer(tk.Frame):
             yPos (int): The starting y position to draw lines.
             lineWeights (int): The weight of each line.
         """
-        x = xPos - self.incrementAmount()
+        x = xPos - self.incrementAmount(horizontalCount=(len(self.state_dict) // 2))
         for weight, y in zip(lineWeights, self.yPositions(self.height(), len(lineWeights))):
             self.drawLine(xPos, yPos, x, y, color=self.numToColor(weight))
-
-
-default_state_dict = {'0.weight': [[0.2576, -0.2207, -0.0969, 0.2347],
-                                   [-0.4707, 0.2999, -0.1029, 0.2544],
-                                   [0.0695, -0.0612, 0.1387, 0.0247],
-                                   [0.1826, -0.1949, -0.0365, -0.0450]],
-                      '0.bias': [0.0725, -0.0020, 0.4371, 0.1556],
-                      '2.weight': [[-0.1862, -0.3020, -0.0838, -0.2157],
-                                   [-0.1602, 0.0239, 0.2981, 0.2718],
-                                   [-0.4888, 0.3100, 0.1397, 0.4743],
-                                   [0.3300, -0.4556, -0.4754, -0.2412]],
-                      '2.bias': [0.4391, -0.0833, 0.2140, -0.2324]}
-
-new_state_dict = {'0.weight': [[1.1293, -0.8090, -0.5287, 1.5705],
-                               [-1.7147, -0.0526, 2.0345, 0.5660],
-                               [0.6976, 1.7807, -0.2015, -0.9580],
-                               [0.1019, -0.2117, -0.0835, -0.0862]],
-                  '0.bias': [0.3508, 0.1918, 0.4731, 0.1465],
-                  '2.weight': [[0.7126, -1.9938, 0.1523, -0.2113],
-                               [-1.3194, -0.2110, 1.3227, 0.2657],
-                               [-0.9676, 1.8449, -0.4638, 0.4726],
-                               [1.3500, 0.1278, -1.7198, -0.2386]],
-                  '2.bias': [0.1505, -0.5000, -0.1721, -0.3832]}
 
 
 def main():
     root = tk.Tk()
     root.title("NN Visualizer")
+    root.resizable()
 
-    visualizer = NNVisualizer(master=root, state_dict=new_state_dict)
+    visualizer = NNVisualizer(master=root, state_dict=StateDictionaries.tictactoe_state_dict())
     visualizer.mainloop()
 
 
