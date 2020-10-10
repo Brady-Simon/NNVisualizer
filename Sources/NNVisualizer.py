@@ -212,15 +212,21 @@ class NNVisualizer(tk.Frame):
         Returns:
             str: The hex value of the number converted to a string (#RRGGBB).
         """
-        red = self.clamp(int(255 * (1 - ((num + 1) / 2))))  # Low value should be red
-        green = 0
-        blue = self.clamp(int(255 * ((num + 1) / 2)))  # High num should be blue
+        progress = (num + 1) / 2
+        red = self.clamp(self.lerp(self.negativeColor[0], self.positiveColor[0], progress))
+        green = self.clamp(self.lerp(self.negativeColor[1], self.positiveColor[1], progress))
+        blue = self.clamp(self.lerp(self.negativeColor[2], self.positiveColor[2], progress))
         return self.rgbToHex(red, green, blue)
 
     @staticmethod
-    def clamp(n: int, smallest: int = 0, largest: int = 255):
+    def lerp(initial, final, progress):
+        """Lerps between `initial` and `final` based on `progress`."""
+        return initial * progress + (1 - progress) * final
+
+    @staticmethod
+    def clamp(n, smallest: int = 0, largest: int = 255) -> int:
         """Clamps `n` between `smallest` and `largest`."""
-        return max(smallest, min(n, largest))
+        return int(max(smallest, min(n, largest)))
 
     def drawLine(self, x1: int, y1: int, x2: int, y2: int, color: str):
         self.canvas.create_line((x1, y1), (x2, y2), fill=color, width=2)
