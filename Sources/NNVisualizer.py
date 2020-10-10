@@ -11,31 +11,32 @@ class NNVisualizer(tk.Frame):
         self.canvas = tk.Canvas(master=self.master, width=500, height=400, highlightthickness=0)
         self.canvas.bind("<Configure>", self.rebuild)
         self.pack()
+
+        self.negativeColor = (255, 0, 0)  # Red
+        self.positiveColor = (0, 0, 255)  # Blue
         self.create_widgets()
 
-    def rebuild(self, event):
-        print(event)
-        pass
+    def rebuild(self, event=None):
         originalHeight = self.height()
         originalWidth = self.width()
         self.config(width=event.width, height=event.height)
         self.canvas.config(width=event.width, height=event.height)
-        # self.update()
-        # self.canvas.update()
-        if (originalHeight != self.canvas.winfo_reqheight() or originalWidth != self.canvas.winfo_reqwidth()):
+        if originalHeight != self.canvas.winfo_reqheight() or originalWidth != self.canvas.winfo_reqwidth():
             self.canvas.delete("all")
             self.drawNN()
 
-    @staticmethod
-    def xStart() -> int:
+    def xStart(self, count: int = None) -> int:
         """Returns the starting x position to use."""
-        return 50
+        if count is None:
+            return 50
+        else:
+            return self.incrementAmount(count) // 2
 
     def incrementAmount(self, horizontalCount: int = None) -> int:
         if horizontalCount is None:
             return 100
         else:
-            width = self.width() / (horizontalCount + 1)
+            width = self.width() // (horizontalCount + 1)
             return width
 
     def radius(self, count: int = None) -> int:
@@ -54,7 +55,6 @@ class NNVisualizer(tk.Frame):
 
     def height(self) -> int:
         height = self.canvas.winfo_reqheight()
-        print(f"Height: {height}")
         return height if height != 1 else 400
 
     def width(self) -> int:
@@ -76,27 +76,74 @@ class NNVisualizer(tk.Frame):
         return [separators * i for i in range(1, count + 1)]
 
     def create_widgets(self):
-        # self.hi_there = tk.Button(self)
-        # self.hi_there["text"] = "Hello World\n(click me)"
-        # self.hi_there["command"] = self.say_hi
-        # self.hi_there.pack(side="top")
 
         self.drawNN()
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
-        self.quit = tk.Button(self, text="QUIT", fg="red",
-                              command=self.master.destroy)
-        self.quit.pack(side="bottom")
+        # Negative Red Text
+        self.negativeRedTextField = tk.Text(master=self.master, fg="red", height=1, width=3)
+        self.negativeRedTextField.config(highlightbackground="red")
+        self.negativeRedTextField.insert(tk.INSERT, "255")
+        self.negativeRedTextField.pack(side=tk.LEFT)
+        # Negative Green Text
+        self.negativeGreenTextField = tk.Text(master=self.master, fg="green", height=1, width=3)
+        self.negativeGreenTextField.config(highlightbackground="green")
+        self.negativeGreenTextField.insert(tk.INSERT, "0")
+        self.negativeGreenTextField.pack(side=tk.LEFT)
+        # Negative Blue Text
+        self.negativeBlueTextField = tk.Text(master=self.master, fg='blue', height=1, width=3)
+        self.negativeBlueTextField.config(highlightbackground="blue")
+        self.negativeBlueTextField.insert(tk.INSERT, "0")
+        self.negativeBlueTextField.pack(side=tk.LEFT)
+
+        # Positive Blue Text
+        self.positiveBlueTextField = tk.Text(master=self.master, fg='blue', height=1, width=3)
+        self.positiveBlueTextField.config(highlightbackground="blue")
+        self.positiveBlueTextField.insert(tk.INSERT, "255")
+        self.positiveBlueTextField.pack(side=tk.RIGHT)
+        # Positive Green Text
+        self.positiveGreenTextField = tk.Text(master=self.master, fg="green", height=1, width=3)
+        self.positiveGreenTextField.config(highlightbackground="green")
+        self.positiveGreenTextField.insert(tk.INSERT, "0")
+        self.positiveGreenTextField.pack(side=tk.RIGHT)
+        # Positive Red Text
+        self.positiveRedTextField = tk.Text(master=self.master, fg="red", height=1, width=3)
+        self.positiveRedTextField.config(highlightbackground="red")
+        self.positiveRedTextField.insert(tk.INSERT, "0")
+        self.positiveRedTextField.pack(side=tk.RIGHT)
+
+        # Update Button
+        self.updateButton = tk.Button(master=self.master, text="Update", command=self.updateColors)
+        self.updateButton.pack(side=tk.BOTTOM)
+        # Quit Button
+        self.quit = tk.Button(self, text="QUIT", fg="red", command=self.master.destroy)
+        self.quit.pack(side=tk.BOTTOM)
+
+    def updateColors(self):
+        """Updates the local `positiveColor` and `negativeColor` to match
+        the values of the text of the text fields.
+        """
+        print("Updating colors")
+        print(self.negativeRedTextField.get("1.0", "end-1c"))
+        self.negativeColor = (int(self.negativeRedTextField.get("1.0", tk.END)),
+                              int(self.negativeGreenTextField.get("1.0", tk.END)),
+                              int(self.negativeBlueTextField.get("1.0", tk.END)))
+        self.positiveColor = (int(self.positiveRedTextField.get("1.0", tk.END)),
+                              int(self.positiveGreenTextField.get("1.0", tk.END)),
+                              int(self.positiveBlueTextField.get("1.0", tk.END)))
+        print(f"Negative: {self.negativeColor}")
+        print(f"Positive: {self.positiveColor}")
+        self.canvas.delete(tk.ALL)
+        self.drawNN()
+
 
     def drawNN(self):
-        self.canvas.update()
-        x = self.xStart()
-
         # Draw the input layer
         inputCount = len(list(self.state_dict.values())[0][0])
-        print(list(self.state_dict.values())[0][0])
+        horizontalCount = len(self.state_dict) // 2
+        x = self.xStart(count=horizontalCount)
         self.drawInputCircles(x, self.height(), inputCount, radius=self.radius(inputCount))
-        x += self.incrementAmount(horizontalCount=(len(self.state_dict) // 2))
+        x += self.incrementAmount(horizontalCount=horizontalCount)
 
         # Draw the hidden and output layers
         for index, listItem in enumerate(self.state_dict.values()):
@@ -110,6 +157,22 @@ class NNVisualizer(tk.Frame):
                 # Biases: draw circles
                 self.drawLayer(x, listItem, self.radius(len(listItem)))
                 x += self.incrementAmount(horizontalCount=(len(self.state_dict) // 2))
+
+        # Draw the color boxes above the positive-negative color pickers
+        # Negative Color
+        negativeColorHex = self.rgbToHex(self.negativeColor[0], self.negativeColor[1], self.negativeColor[2])
+        positiveColorHex = self.rgbToHex(self.positiveColor[0], self.positiveColor[1], self.positiveColor[2])
+        self.canvas.create_rectangle(
+            0, self.height() - 20,
+            87, self.height(),
+            fill=negativeColorHex, width=0.0,
+        )
+        # Positive Color
+        self.canvas.create_rectangle(
+            self.width() - 87, self.height() - 20,
+            self.width(), self.height(),
+            fill=positiveColorHex, width=0.0,
+        )
 
     def say_hi(self):
         print("hi there, everyone!")
@@ -180,7 +243,7 @@ def main():
     root.title("NN Visualizer")
     root.resizable()
 
-    visualizer = NNVisualizer(master=root, state_dict=StateDictionaries.tictactoe_state_dict())
+    visualizer = NNVisualizer(master=root, state_dict=StateDictionaries.snake_state_dict())
     visualizer.mainloop()
 
 
