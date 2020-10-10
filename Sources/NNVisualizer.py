@@ -221,7 +221,7 @@ class NNVisualizer(tk.Frame):
     @staticmethod
     def lerp(initial, final, progress):
         """Lerps between `initial` and `final` based on `progress`."""
-        return initial * progress + (1 - progress) * final
+        return initial * (1 - progress) + final * progress
 
     @staticmethod
     def clamp(n, smallest: int = 0, largest: int = 255) -> int:
@@ -246,7 +246,7 @@ class NNVisualizer(tk.Frame):
 
 def main():
     root = tk.Tk()
-    root.title("NN Visualizer")
+    root.title("Neural Net Visualizer")
     root.resizable()
 
     visualizer = NNVisualizer(master=root, state_dict=StateDictionaries.snake_state_dict())
