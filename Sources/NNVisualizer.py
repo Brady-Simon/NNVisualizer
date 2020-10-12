@@ -54,10 +54,12 @@ class NNVisualizer(tk.Frame):
             return max(10, int(self.height() / (5 * count)))
 
     def height(self) -> int:
+        """The height of the view, or a default value of 400."""
         height = self.canvas.winfo_reqheight()
         return height if height != 1 else 400
 
     def width(self) -> int:
+        """The width of the view, or a default value of 500."""
         width = self.canvas.winfo_reqwidth()
         return width if width != 1 else 500
 
@@ -124,7 +126,6 @@ class NNVisualizer(tk.Frame):
         the values of the text of the text fields.
         """
         print("Updating colors")
-        print(self.negativeRedTextField.get("1.0", "end-1c"))
         self.negativeColor = (int(self.negativeRedTextField.get("1.0", tk.END)),
                               int(self.negativeGreenTextField.get("1.0", tk.END)),
                               int(self.negativeBlueTextField.get("1.0", tk.END)))
@@ -159,20 +160,28 @@ class NNVisualizer(tk.Frame):
                 x += self.incrementAmount(horizontalCount=(len(self.state_dict) // 2))
 
         # Draw the color boxes above the positive-negative color pickers
-        # Negative Color
+        # Negative and Positive Colors
         negativeColorHex = self.rgbToHex(self.negativeColor[0], self.negativeColor[1], self.negativeColor[2])
         positiveColorHex = self.rgbToHex(self.positiveColor[0], self.positiveColor[1], self.positiveColor[2])
+        # Draw the negative color
         self.canvas.create_rectangle(
             0, self.height() - 20,
             87, self.height(),
             fill=negativeColorHex, width=0.0,
         )
-        # Positive Color
+        # Draw the positive color
         self.canvas.create_rectangle(
             self.width() - 87, self.height() - 20,
             self.width(), self.height(),
             fill=positiveColorHex, width=0.0,
         )
+
+        # The negative label and its shadow
+        self.canvas.create_text(45, self.height() - 9, text="Negative", fill="black")
+        self.canvas.create_text(44, self.height() - 10, text="Negative", fill="white")
+        # The positive label and its shadow
+        self.canvas.create_text(self.width() - 43, self.height() - 9, text="Positive", fill="black")
+        self.canvas.create_text(self.width() - 44, self.height() - 10, text="Positive", fill="white")
 
     def say_hi(self):
         print("hi there, everyone!")
