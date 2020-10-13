@@ -1,29 +1,65 @@
 import tkinter as tk
+from threading import Thread
 from Sources.StateDictionaries import StateDictionaries
 
 
 class NNVisualizer(tk.Frame):
 
-    def __init__(self, state_dict: dict, master=None):
+    def __init__(self, state_dict: dict, update_state_dict=None, update_interval: int = -1, master=None):
+        """Initializes a new Neural Net Visualizer.
+
+        Args:
+            state_dict (dict): The state dictionary to visualize.
+            update_state_dict: A function that returns an updated version of the state dictionary.
+            update_interval (int): How often (in ms) to check for updated state dictionaries.
+                Does not update the state dictionary of the frequency is less than 0.
+            master: The TK root to use. One will be created if left empty.
+        """
+        if master is None:
+            self.master = tk.Tk()
+            self.master.title("Neural Net Visualizer")
+            self.master.resizable()
+        else:
+            self.master = master
         super().__init__(master)
-        self.master = master
+
         self.state_dict = state_dict
+        self.update_state_dict = update_state_dict
+        self.update_interval = update_interval
         self.canvas = tk.Canvas(master=self.master, width=500, height=400, highlightthickness=0)
         self.canvas.bind("<Configure>", self.rebuild)
-        self.pack()
 
         self.negativeColor = (255, 0, 0)  # Red
         self.positiveColor = (0, 0, 255)  # Blue
         self.create_widgets()
+        if update_state_dict is not None and update_interval >= 0:
+            self.after(update_interval, lambda: self.updateStateDict(new_state_dict=update_state_dict()))
 
     def rebuild(self, event=None):
         originalHeight = self.height()
         originalWidth = self.width()
-        self.config(width=event.width, height=event.height)
         self.canvas.config(width=event.width, height=event.height)
         if originalHeight != self.canvas.winfo_reqheight() or originalWidth != self.canvas.winfo_reqwidth():
-            self.canvas.delete("all")
+            self.canvas.delete(tk.ALL)
             self.drawNN()
+
+    def updateStateDict(self, new_state_dict):
+        """Updates the local state dictionary and redraws the screen."""
+        if self.state_dict != new_state_dict:
+
+            def refresh():
+                # Refresh the state dictionary and redraw the screen
+                self.state_dict = new_state_dict
+                self.canvas.delete(tk.ALL)
+                self.drawNN()
+
+            # Run a new thread for the update
+            thread = Thread(target=refresh)
+            thread.start()
+
+        # Call this function again if applicable and continue checking for updates
+        if self.update_state_dict is not None and self.update_interval >= 0:
+            self.after(self.update_interval, lambda: self.updateStateDict(self.update_state_dict()))
 
     def xStart(self, count: int = None) -> int:
         """Returns the starting x position to use."""
@@ -33,6 +69,14 @@ class NNVisualizer(tk.Frame):
             return self.incrementAmount(count) // 2
 
     def incrementAmount(self, horizontalCount: int = None) -> int:
+        """The amount to increment horizontally across the screen.
+
+        Args:
+            horizontalCount (int): The number of layers in the neural net.
+
+        Returns:
+            int: The amount to increase the current X position while drawing.
+        """
         if horizontalCount is None:
             return 100
         else:
@@ -78,7 +122,7 @@ class NNVisualizer(tk.Frame):
         return [separators * i for i in range(1, count + 1)]
 
     def create_widgets(self):
-
+        """Creates all of the important widgets on screen."""
         self.drawNN()
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
@@ -116,10 +160,11 @@ class NNVisualizer(tk.Frame):
 
         # Update Button
         self.updateButton = tk.Button(master=self.master, text="Update", command=self.updateColors)
-        self.updateButton.pack(side=tk.BOTTOM)
+        self.updateButton.pack(fill=tk.Y, expand=False, anchor=tk.S)
         # Quit Button
-        self.quit = tk.Button(self, text="QUIT", fg="red", command=self.master.destroy)
-        self.quit.pack(side=tk.BOTTOM)
+        # self.quit = tk.Button(self, text="QUIT", fg="red", command=self.master.destroy)
+        # self.quit.pack(side=tk.BOTTOM)
+        # self.pack()
 
     def updateColors(self):
         """Updates the local `positiveColor` and `negativeColor` to match
@@ -137,8 +182,8 @@ class NNVisualizer(tk.Frame):
         self.canvas.delete(tk.ALL)
         self.drawNN()
 
-
     def drawNN(self):
+        """Draws the neural net on the canvas."""
         # Draw the input layer
         inputCount = len(list(self.state_dict.values())[0][0])
         horizontalCount = len(self.state_dict) // 2
@@ -183,11 +228,17 @@ class NNVisualizer(tk.Frame):
         self.canvas.create_text(self.width() - 43, self.height() - 9, text="Positive", fill="black")
         self.canvas.create_text(self.width() - 44, self.height() - 10, text="Positive", fill="white")
 
-    def say_hi(self):
-        print("hi there, everyone!")
+    def drawCircle(self, x: int, y: int, r: int, color: str, outline: str = "grey"):
+        """Draws a circle onto the canvas.
 
-    def drawCircle(self, x: int, y: int, r: int, color: str):
-        self.canvas.create_oval(x - r, y - r, x + r, y + r, fill=color, outline=color)
+        Args:
+            x (int): The X-coordinate to place the circle.
+            y (int): The Y-coordinate to place the circle.
+            r (int): The radius of the circle.
+            color (str): The color to fill the circle.
+            outline (str): The outline of the circle. Defaults to 'grey'.
+        """
+        self.canvas.create_oval(x - r, y - r, x + r, y + r, fill=color, outline=outline)
 
     def drawLayer(self, xPos: int, biases: list, radius: int = 20):
         for bias, yPos in zip(biases, self.yPositions(self.height(), len(biases))):
@@ -196,7 +247,7 @@ class NNVisualizer(tk.Frame):
     def drawInputCircles(self, xPos: int, height: int, count: int, radius: int = 20):
         yPositions = self.yPositions(height, count)
         for yPos in yPositions:
-            self.drawCircle(xPos, yPos, radius, color="#AAAAAA")
+            self.drawCircle(xPos, yPos, radius, color="#EEEEEE")
 
     @staticmethod
     def rgbToHex(r: int, g: int, b: int) -> str:
@@ -253,12 +304,24 @@ class NNVisualizer(tk.Frame):
             self.drawLine(xPos, yPos, x, y, color=self.numToColor(weight))
 
 
-def main():
-    root = tk.Tk()
-    root.title("Neural Net Visualizer")
-    root.resizable()
+isDefaultDictionary: bool = False
+"""bool: Whether or not the default dictionary is being shown on screen."""
 
-    visualizer = NNVisualizer(master=root, state_dict=StateDictionaries.snake_state_dict())
+
+def update() -> dict:
+    """Toggles the global `isDefaultDictionary` and returns the new dictionary to use."""
+    global isDefaultDictionary
+    isDefaultDictionary = not isDefaultDictionary
+    if isDefaultDictionary:
+        return StateDictionaries.default_state_dict()
+    else:
+        return StateDictionaries.snake_state_dict()
+
+
+def main():
+    visualizer = NNVisualizer(state_dict=StateDictionaries.snake_state_dict(),
+                              update_state_dict=update,
+                              update_interval=1000)
     visualizer.mainloop()
 
 
