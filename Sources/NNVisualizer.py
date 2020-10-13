@@ -1,9 +1,22 @@
 import tkinter as tk
-from threading import Thread
 from Sources.StateDictionaries import StateDictionaries
 
 
 class NNVisualizer(tk.Frame):
+    """Visualizes the state dictionary of a neural net.
+
+    Live updates during training are supported through extra threads.
+    Follow these general steps:
+        - Instantiate your ML model.
+        - Inject the ML state dictionary into the NNVisualizer
+          and update periodically using `update_state_dict`
+          and `update_interval`.
+        - Begin training your model on a separate thread
+        - Show the NNVisualizer using `show()` or `mainloop()`.
+
+    If you only want to display the fully-trained model, then just pass
+    in the final model into the initializer and show the visualizer.
+    """
 
     def __init__(self, state_dict: dict, update_state_dict=None, update_interval: int = -1, master=None):
         """Initializes a new Neural Net Visualizer.
@@ -45,17 +58,12 @@ class NNVisualizer(tk.Frame):
 
     def updateStateDict(self, new_state_dict):
         """Updates the local state dictionary and redraws the screen."""
-        if self.state_dict != new_state_dict:
 
-            def refresh():
-                # Refresh the state dictionary and redraw the screen
-                self.state_dict = new_state_dict
-                self.canvas.delete(tk.ALL)
-                self.drawNN()
-
-            # Run a new thread for the update
-            thread = Thread(target=refresh)
-            thread.start()
+        # Refresh the state dictionary and redraw the screen
+        self.state_dict = new_state_dict
+        self.canvas.delete(tk.ALL)
+        self.drawNN()
+        self.update()
 
         # Call this function again if applicable and continue checking for updates
         if self.update_state_dict is not None and self.update_interval >= 0:
@@ -303,6 +311,14 @@ class NNVisualizer(tk.Frame):
         for weight, y in zip(lineWeights, self.yPositions(self.height(), len(lineWeights))):
             self.drawLine(xPos, yPos, x, y, color=self.numToColor(weight))
 
+    def show(self):
+        """Opens the visualizer on screen. Blocks the thread until
+        the window is closed.
+
+        This is just a shortcut for `self.mainloop()`.
+        """
+        self.mainloop()
+
 
 isDefaultDictionary: bool = False
 """bool: Whether or not the default dictionary is being shown on screen."""
@@ -319,9 +335,7 @@ def update() -> dict:
 
 
 def main():
-    visualizer = NNVisualizer(state_dict=StateDictionaries.snake_state_dict(),
-                              update_state_dict=update,
-                              update_interval=1000)
+    visualizer = NNVisualizer(state_dict=StateDictionaries.snake_state_dict())
     visualizer.mainloop()
 
 
