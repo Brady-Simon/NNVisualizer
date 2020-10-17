@@ -1,4 +1,5 @@
 import tkinter as tk
+from Sources.Toolbar import Toolbar
 from Sources.StateDictionaries import StateDictionaries
 
 
@@ -42,6 +43,7 @@ class NNVisualizer(tk.Frame):
         self.canvas = tk.Canvas(master=self.master, width=500, height=400, highlightthickness=0)
         self.canvas.bind("<Configure>", self.rebuild)
 
+        self.toolbar = Toolbar(master=self.master, frame=self, update_func=self.updateColors)
         self.negativeColor = (255, 0, 0)  # Red
         self.positiveColor = (0, 0, 255)  # Blue
         self.create_widgets()
@@ -133,60 +135,15 @@ class NNVisualizer(tk.Frame):
         """Creates all of the important widgets on screen."""
         self.drawNN()
         self.canvas.pack(fill=tk.BOTH, expand=True)
-
-        # Negative Red Text
-        self.negativeRedTextField = tk.Text(master=self.master, fg="red", height=1, width=3)
-        self.negativeRedTextField.config(highlightbackground="red")
-        self.negativeRedTextField.insert(tk.INSERT, "255")
-        self.negativeRedTextField.pack(side=tk.LEFT)
-        # Negative Green Text
-        self.negativeGreenTextField = tk.Text(master=self.master, fg="green", height=1, width=3)
-        self.negativeGreenTextField.config(highlightbackground="green")
-        self.negativeGreenTextField.insert(tk.INSERT, "0")
-        self.negativeGreenTextField.pack(side=tk.LEFT)
-        # Negative Blue Text
-        self.negativeBlueTextField = tk.Text(master=self.master, fg='blue', height=1, width=3)
-        self.negativeBlueTextField.config(highlightbackground="blue")
-        self.negativeBlueTextField.insert(tk.INSERT, "0")
-        self.negativeBlueTextField.pack(side=tk.LEFT)
-
-        # Positive Blue Text
-        self.positiveBlueTextField = tk.Text(master=self.master, fg='blue', height=1, width=3)
-        self.positiveBlueTextField.config(highlightbackground="blue")
-        self.positiveBlueTextField.insert(tk.INSERT, "255")
-        self.positiveBlueTextField.pack(side=tk.RIGHT)
-        # Positive Green Text
-        self.positiveGreenTextField = tk.Text(master=self.master, fg="green", height=1, width=3)
-        self.positiveGreenTextField.config(highlightbackground="green")
-        self.positiveGreenTextField.insert(tk.INSERT, "0")
-        self.positiveGreenTextField.pack(side=tk.RIGHT)
-        # Positive Red Text
-        self.positiveRedTextField = tk.Text(master=self.master, fg="red", height=1, width=3)
-        self.positiveRedTextField.config(highlightbackground="red")
-        self.positiveRedTextField.insert(tk.INSERT, "0")
-        self.positiveRedTextField.pack(side=tk.RIGHT)
-
-        # Update Button
-        self.updateButton = tk.Button(master=self.master, text="Update", command=self.updateColors)
-        self.updateButton.pack(fill=tk.Y, expand=False, anchor=tk.S)
-        # Quit Button
-        # self.quit = tk.Button(self, text="QUIT", fg="red", command=self.master.destroy)
-        # self.quit.pack(side=tk.BOTTOM)
-        # self.pack()
+        self.toolbar.create_widgets()
 
     def updateColors(self):
         """Updates the local `positiveColor` and `negativeColor` to match
         the values of the text of the text fields.
         """
-        print("Updating colors")
-        self.negativeColor = (int(self.negativeRedTextField.get("1.0", tk.END)),
-                              int(self.negativeGreenTextField.get("1.0", tk.END)),
-                              int(self.negativeBlueTextField.get("1.0", tk.END)))
-        self.positiveColor = (int(self.positiveRedTextField.get("1.0", tk.END)),
-                              int(self.positiveGreenTextField.get("1.0", tk.END)),
-                              int(self.positiveBlueTextField.get("1.0", tk.END)))
-        print(f"Negative: {self.negativeColor}")
-        print(f"Positive: {self.positiveColor}")
+        self.toolbar.updateColors()
+        self.positiveColor = self.toolbar.positiveColor
+        self.negativeColor = self.toolbar.negativeColor
         self.canvas.delete(tk.ALL)
         self.drawNN()
 
