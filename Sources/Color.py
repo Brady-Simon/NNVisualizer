@@ -17,6 +17,18 @@ class Color:
         return '#{:02x}{:02x}{:02x}'.format(r, g, b)
 
     @staticmethod
+    def colorToHex(color: (int, int, int)) -> str:
+        """Returns the hex value for the given `color`.
+
+        Args:
+            color (int, int, int): The RGB color (0-255).
+
+        Returns:
+            str: The string representation of the hex color (#RRGGBB).
+        """
+        return Color.rgbToHex(color[0], color[1], color[2])
+
+    @staticmethod
     def lerp(initial, final, progress):
         """Lerps between `initial` and `final` based on `progress`."""
         return initial * (1 - progress) + final * progress

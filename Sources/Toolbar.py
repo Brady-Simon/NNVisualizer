@@ -83,11 +83,7 @@ class Toolbar:
         print(f"Positive: {self.positiveColor}")
 
     def positiveColorHex(self) -> str:
-        return Color.rgbToHex(self.positiveColor[0],
-                              self.positiveColor[1],
-                              self.positiveColor[2])
+        return Color.colorToHex(self.positiveColor)
 
     def negativeColorHex(self) -> str:
-        return Color.rgbToHex(self.negativeColor[0],
-                              self.negativeColor[1],
-                              self.negativeColor[2])
+        return Color.colorToHex(self.negativeColor)
