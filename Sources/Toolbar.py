@@ -1,4 +1,5 @@
 import tkinter as tk
+from Sources.Color import Color
 
 
 class Toolbar:
@@ -37,6 +38,10 @@ class Toolbar:
         self.negativeBlueTextField.config(highlightbackground="blue")
         self.negativeBlueTextField.insert(tk.INSERT, "0")
         self.negativeBlueTextField.pack(side=tk.LEFT)
+        # Negative Label
+        self.negativeLabel = tk.Label(master=self.master, background=self.negativeColorHex(),
+                                      foreground='white', text='Negative')
+        self.negativeLabel.pack(side=tk.LEFT)
 
         # Positive Blue Text
         self.positiveBlueTextField = tk.Text(master=self.master, fg='blue', height=1, width=3)
@@ -53,6 +58,10 @@ class Toolbar:
         self.positiveRedTextField.config(highlightbackground="red")
         self.positiveRedTextField.insert(tk.INSERT, "0")
         self.positiveRedTextField.pack(side=tk.RIGHT)
+        # Positive Label
+        self.positiveLabel = tk.Label(master=self.master, background=self.positiveColorHex(),
+                                      foreground='white', text='Positive')
+        self.positiveLabel.pack(side=tk.RIGHT)
 
         # Update Button
         self.updateButton = tk.Button(master=self.master, text="Update", command=self.update_func)
@@ -66,5 +75,19 @@ class Toolbar:
         self.positiveColor = (int(self.positiveRedTextField.get("1.0", tk.END)),
                               int(self.positiveGreenTextField.get("1.0", tk.END)),
                               int(self.positiveBlueTextField.get("1.0", tk.END)))
+        # Update the positive and negative labels
+        self.negativeLabel.config(background=self.negativeColorHex())
+        self.positiveLabel.config(background=self.positiveColorHex())
+
         print(f"Negative: {self.negativeColor}")
         print(f"Positive: {self.positiveColor}")
+
+    def positiveColorHex(self) -> str:
+        return Color.rgbToHex(self.positiveColor[0],
+                              self.positiveColor[1],
+                              self.positiveColor[2])
+
+    def negativeColorHex(self) -> str:
+        return Color.rgbToHex(self.negativeColor[0],
+                              self.negativeColor[1],
+                              self.negativeColor[2])

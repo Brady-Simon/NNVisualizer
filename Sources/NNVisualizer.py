@@ -1,6 +1,7 @@
 import tkinter as tk
 from Sources.Toolbar import Toolbar
 from Sources.StateDictionaries import StateDictionaries
+from Sources.Color import Color
 
 
 class NNVisualizer(tk.Frame):
@@ -43,12 +44,20 @@ class NNVisualizer(tk.Frame):
         self.canvas = tk.Canvas(master=self.master, width=500, height=400, highlightthickness=0)
         self.canvas.bind("<Configure>", self.rebuild)
 
+        self.canvas.bind("<MouseWheel>", self.zoom)
+        self.canvas.bind('<ButtonPress-1>', lambda event: self.canvas.scan_mark(event.x, event.y))
+        self.canvas.bind("<B1-Motion>", lambda event: self.canvas.scan_dragto(event.x, event.y, gain=1))
+
         self.toolbar = Toolbar(master=self.master, frame=self, update_func=self.updateColors)
         self.negativeColor = (255, 0, 0)  # Red
         self.positiveColor = (0, 0, 255)  # Blue
         self.create_widgets()
         if update_state_dict is not None and update_interval >= 0:
             self.after(update_interval, lambda: self.updateStateDict(new_state_dict=update_state_dict()))
+
+    def zoom(self, event):
+        factor = 1.01 ** event.delta
+        self.canvas.scale(tk.ALL, event.x, event.y, factor, factor)
 
     def rebuild(self, event=None):
         originalHeight = self.height()
@@ -149,14 +158,14 @@ class NNVisualizer(tk.Frame):
 
     def drawNN(self):
         """Draws the neural net on the canvas."""
-        # Draw the input layer
+        # Values for drawing on the screen
+        # Lines are drawn first, then circles.
+        # Otherwise, circles would have lines drawn over them.
         inputCount = len(list(self.state_dict.values())[0][0])
         horizontalCount = len(self.state_dict) // 2
-        x = self.xStart(count=horizontalCount)
-        self.drawInputCircles(x, self.height(), inputCount, radius=self.radius(inputCount))
-        x += self.incrementAmount(horizontalCount=horizontalCount)
+        x = self.xStart(count=horizontalCount) + self.incrementAmount(horizontalCount)
 
-        # Draw the hidden and output layers
+        # Draw the line weights first; circles will be drawn over them later.
         for index, listItem in enumerate(self.state_dict.values()):
             # Even items are weights and odd items are biases
             if index % 2 == 0:
@@ -164,34 +173,19 @@ class NNVisualizer(tk.Frame):
                 yPositions = self.yPositions(self.height(), len(listItem))
                 for weights, yPos in zip(listItem, yPositions):
                     self.drawLines(x, yPos, weights)
-            else:
+                x += self.incrementAmount(horizontalCount=(len(self.state_dict) // 2))
+
+        # Draw the input circles.
+        x = self.xStart(count=horizontalCount)
+        self.drawInputCircles(x, self.height(), inputCount, radius=self.radius(inputCount))
+        x += self.incrementAmount(horizontalCount=horizontalCount)
+
+        # Draw each layer of biases.
+        for index, listItem in enumerate(self.state_dict.values()):
+            if index % 2 == 1:
                 # Biases: draw circles
                 self.drawLayer(x, listItem, self.radius(len(listItem)))
                 x += self.incrementAmount(horizontalCount=(len(self.state_dict) // 2))
-
-        # Draw the color boxes above the positive-negative color pickers
-        # Negative and Positive Colors
-        negativeColorHex = self.rgbToHex(self.negativeColor[0], self.negativeColor[1], self.negativeColor[2])
-        positiveColorHex = self.rgbToHex(self.positiveColor[0], self.positiveColor[1], self.positiveColor[2])
-        # Draw the negative color
-        self.canvas.create_rectangle(
-            0, self.height() - 20,
-            87, self.height(),
-            fill=negativeColorHex, width=0.0,
-        )
-        # Draw the positive color
-        self.canvas.create_rectangle(
-            self.width() - 87, self.height() - 20,
-            self.width(), self.height(),
-            fill=positiveColorHex, width=0.0,
-        )
-
-        # The negative label and its shadow
-        self.canvas.create_text(45, self.height() - 9, text="Negative", fill="black")
-        self.canvas.create_text(44, self.height() - 10, text="Negative", fill="white")
-        # The positive label and its shadow
-        self.canvas.create_text(self.width() - 43, self.height() - 9, text="Positive", fill="black")
-        self.canvas.create_text(self.width() - 44, self.height() - 10, text="Positive", fill="white")
 
     def drawCircle(self, x: int, y: int, r: int, color: str, outline: str = "grey"):
         """Draws a circle onto the canvas.
@@ -214,20 +208,6 @@ class NNVisualizer(tk.Frame):
         for yPos in yPositions:
             self.drawCircle(xPos, yPos, radius, color="#EEEEEE")
 
-    @staticmethod
-    def rgbToHex(r: int, g: int, b: int) -> str:
-        """Converts the given RGB values (0-255) into hex format, #RRGGBB.
-
-        Args:
-            r (int): The amount of red, between 0 and 255.
-            g (int): The amount of green, between 0 and 255.
-            b (int): The amount of blue, between 0 and 255.
-
-        Returns:
-            str: The string representation of the hex color (#RRGGBB).
-        """
-        return '#{:02x}{:02x}{:02x}'.format(r, g, b)
-
     def numToColor(self, num: float) -> str:
         """Interpolates the number (0.0-1.0) into a color.
 
@@ -238,20 +218,8 @@ class NNVisualizer(tk.Frame):
             str: The hex value of the number converted to a string (#RRGGBB).
         """
         progress = (num + 1) / 2
-        red = self.clamp(self.lerp(self.negativeColor[0], self.positiveColor[0], progress))
-        green = self.clamp(self.lerp(self.negativeColor[1], self.positiveColor[1], progress))
-        blue = self.clamp(self.lerp(self.negativeColor[2], self.positiveColor[2], progress))
-        return self.rgbToHex(red, green, blue)
-
-    @staticmethod
-    def lerp(initial, final, progress):
-        """Lerps between `initial` and `final` based on `progress`."""
-        return initial * (1 - progress) + final * progress
-
-    @staticmethod
-    def clamp(n, smallest: int = 0, largest: int = 255) -> int:
-        """Clamps `n` between `smallest` and `largest`."""
-        return int(max(smallest, min(n, largest)))
+        red, green, blue = Color.interpolateColor(self.negativeColor, self.positiveColor, progress)
+        return Color.rgbToHex(red, green, blue)
 
     def drawLine(self, x1: int, y1: int, x2: int, y2: int, color: str, width: float = 2):
         self.canvas.create_line((x1, y1), (x2, y2), fill=color, width=width)
@@ -266,7 +234,7 @@ class NNVisualizer(tk.Frame):
         """
         x = xPos - self.incrementAmount(horizontalCount=(len(self.state_dict) // 2))
         for weight, y in zip(lineWeights, self.yPositions(self.height(), len(lineWeights))):
-            lineWidth = self.clamp(abs(weight), smallest=0, largest=1) + 1
+            lineWidth = min(2, max(1, abs(weight) + 1))
             self.drawLine(xPos, yPos, x, y, color=self.numToColor(weight), width=lineWidth)
 
     def show(self):
