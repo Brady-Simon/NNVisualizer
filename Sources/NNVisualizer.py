@@ -253,8 +253,8 @@ class NNVisualizer(tk.Frame):
         """Clamps `n` between `smallest` and `largest`."""
         return int(max(smallest, min(n, largest)))
 
-    def drawLine(self, x1: int, y1: int, x2: int, y2: int, color: str):
-        self.canvas.create_line((x1, y1), (x2, y2), fill=color, width=2)
+    def drawLine(self, x1: int, y1: int, x2: int, y2: int, color: str, width: float = 2):
+        self.canvas.create_line((x1, y1), (x2, y2), fill=color, width=width)
 
     def drawLines(self, xPos: int, yPos: int, lineWeights: list):
         """Draws lines between the left and right.
@@ -266,7 +266,8 @@ class NNVisualizer(tk.Frame):
         """
         x = xPos - self.incrementAmount(horizontalCount=(len(self.state_dict) // 2))
         for weight, y in zip(lineWeights, self.yPositions(self.height(), len(lineWeights))):
-            self.drawLine(xPos, yPos, x, y, color=self.numToColor(weight))
+            lineWidth = self.clamp(abs(weight), smallest=0, largest=1) + 1
+            self.drawLine(xPos, yPos, x, y, color=self.numToColor(weight), width=lineWidth)
 
     def show(self):
         """Opens the visualizer on screen. Blocks the thread until
@@ -292,7 +293,7 @@ def update() -> dict:
 
 
 def main():
-    visualizer = NNVisualizer(state_dict=StateDictionaries.snake_state_dict())
+    visualizer = NNVisualizer(state_dict=StateDictionaries.tictactoe_state_dict())
     visualizer.mainloop()
 
 
